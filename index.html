@@ -84,15 +84,36 @@
         }
         .btn-ui:hover { background: #f3f3f3; border-color: #bbb; }
 
-        /* ==========================================
-           GRID LAYOUT - DA ESQUERDA PARA A DIREITA
-           ========================================== */
+        /* Seção de Filtros Estilo LogVision */
+        .filter-section { 
+            background: #f9f9f9; 
+            border: 1px solid #ddd; 
+            border-radius: 10px; 
+            padding: 20px; 
+            margin-bottom: 25px; 
+            display: none;
+        }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .filter-item { 
+            display: flex; align-items: center; gap: 8px; background: #fff; 
+            border: 1px solid #ddd; padding: 8px 16px; border-radius: 20px; 
+            font-size: 12px; cursor: pointer; font-weight: 600; transition: 0.2s;
+            user-select: none;
+        }
+        .filter-item.active { 
+            background: #FEF8E6; border-color: var(--amazon-orange); 
+            color: #c45500; box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        }
+
         .dashboard-actions {
             display: none;
             justify-content: flex-end;
             margin-bottom: 25px;
         }
 
+        /* ==========================================
+           GRID LAYOUT - DA ESQUERDA PARA A DIREITA
+           ========================================== */
         #outputArea {
             display: flex;
             flex-direction: row;        
@@ -109,7 +130,7 @@
             border-radius: 10px; 
             overflow: hidden; 
             background: white; 
-            width: 410px; /* Largura ideal para conter a tabela de 380px + respiros */
+            width: 440px; /* Alargado levemente para comportar a nova coluna sem esmagar */
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             display: flex;
             flex-direction: column;
@@ -126,7 +147,7 @@
            VISUAL ORIGINAL DO EXCEL PRESERVADO (Para os Prints)
            ========================================== */
         .table-container {
-            width: 380px; 
+            width: 410px; /* Redimensionado de forma proporcional para conter a coluna extra */
             border: 1px solid #b4b4b4;
             background-color: white;
             margin-top: 15px;
@@ -150,6 +171,7 @@
             color: #333333; padding: 1px 2px; border: 1px solid #777777; border-radius: 1px;
         }
         .node-cell { text-align: left; background-color: #ffffff; color: #000000; font-weight: 700; }
+        .partner-cell { text-align: left; background-color: #ffffff; color: #444444; font-weight: 600; font-size: 13px; }
         .num-cell { text-align: right; background-color: #ffffff; color: #000000; font-weight: 600; }
         
         /* Escala de cores do Excel */
@@ -189,6 +211,12 @@
             </div>
         </div>
 
+        <!-- Seção Dinâmica de Filtros por Parceiro -->
+        <div id="filterSection" class="filter-section">
+            <label style="font-size:11px; font-weight:700; color: var(--amazon-blue); text-transform: uppercase;">Filtrar por Parceiro de Transporte:</label>
+            <div class="checkbox-group" id="partnerFilterGroup"></div>
+        </div>
+
         <!-- Ações do Dashboard -->
         <div class="dashboard-actions" id="globalActions">
             <button class="btn-amazon-rect" style="background:#cc0c39; color:#fff; border:none" onclick="clearAllData()">
@@ -208,7 +236,74 @@
 <div id="toast">Ação concluída!</div>
 
 <script>
-    // Injeção da lógica de processamento e inteligência operacional
+    // BANCO DE DADOS DE PARCEIROS (Histórico Injetado)
+    const PARTNER_MAP = {
+        "FBH1": "Shippify", "FBS1": "Diálogo", "FPE1": "GW Express", "FRJ2": "Bravus", "PAB2": "Fácil Express",
+        "PAF1": "Shippify", "PAL1": "Envia Daki", "PAQ1": "Azul", "PAS2": "Diálogo", "PAQ1": "Azul", 
+        "PAZ1": "Fácil Express", "PBE2": "Diálogo", "PBG2": "Redefrete", "PBT2": "Total Express", "PBZ2": "Fácil Express",
+        "PCC2": "Redefrete", "PCI1": "GW Express", "PCM2": "Elo Logística", "PCN2": "GW Express", "PCO1": "Diálogo",
+        "PCR2": "Diálogo", "PCS2": "GW Express", "PCU1": "Redefrete", "PCV2": "Fácil Express", "PCX2": "Shippify",
+        "PDI2": "Shippify", "PDN1": "Shippify", "PEC1": "Azul", "PEU2": "Envia Daki", "PFE1": "To Do Green",
+        "PFI1": "Fácil Express", "PFO1": "Fácil Express", "PFR1": "Diálogo", "PGA2": "Redefrete", "PGL2": "To Do Green",
+        "PGN2": "Envia Daki", "PGO2": "Diálogo", "PGP1": "Fácil Express", "PGR1": "Shippify", "PGR2": "Azul",
+        "PGU1": "Diálogo", "PIA2": "Favela Llog", "PIB1": "Shippify", "PIE2": "Fácil Express", "PIG1": "GW Express",
+        "PIH2": "Diálogo", "PIJ2": "Azul", "PIM2": "Diálogo", "PIP2": "Envia Daki", "PIR2": "Morais",
+        "PIU2": "Envia Daki", "PJB2": "To Do Green", "PJE1": "Envia Daki", "PJI1": "Fácil Express", "PLO1": "To Do Green",
+        "PLS1": "To Do Green", "PLV1": "Shippify", "PLV2": "Envia Daki", "PMB1": "Azul", "PMC2": "Redefrete",
+        "PMG2": "Shippify", "PML9": "To Do Green", "PMN2": "Diálogo", "PMR2": "Envia Daki", "PMT1": "Fácil Express",
+        "PMT2": "To Do Green", "PMU1": "Shippify", "PNH2": "Diálogo", "POP2": "To Do Green", "POS2": "Envia Daki",
+        "PPB1": "Diálogo", "PPC1": "Fácil Express", "PPD2": "Favela Llog", "PPE2": "Shippify", "PPF2": "GW Express",
+        "PPG1": "Envia Daki", "PPI1": "Fácil Express", "PPN2": "Shippify", "PPR1": "Fácil Express", "PPS1": "Shippify",
+        "PPT1": "GW Express", "PRA1": "Azul", "PRL1": "Fatelog", "PRO2": "Fácil Express", "PRU2": "Elo Logística",
+        "PRV2": "Diálogo", "PSA1": "Azul", "PSA2": "Redefrete", "PSB2": "Diálogo", "PSD2": "Favela Llog",
+        "PSG2": "Elo Logística", "PSJ1": "Envia Daki", "PSM2": "Favela Llog", "PST2": "Azul", "PSU2": "GW Express",
+        "PTA2": "Fácil Express", "PTB1": "Shippify", "PTF1": "Envia Daki", "PTI2": "Diálogo", "PTO2": "Shippify",
+        "PTR2": "Deluna", "PTU2": "Diálogo", "PUE2": "Diálogo", "PUG2": "Redefrete", "PUM1": "Diálogo",
+        "PUM2": "Deluna", "PUN2": "Morais", "PVH1": "Fácil Express", "PVI1": "Shippify", "PVR2": "Fatelog",
+        "RAA9": "Fácil Express", "RAC9": "Fácil Express", "RAL9": "Fácil Express", "RAM9": "Fácil Express", "RAN9": "Fácil Express",
+        "RAO9": "Fácil Express", "RAP9": "Fácil Express", "RAR9": "Fácil Express", "RAT9": "Fácil Express", "RAU9": "Fácil Express",
+        "RBA9": "Fácil Express", "RBC9": "Fácil Express", "RBE9": "Fácil Express", "RBL9": "Fácil Express", "RBO9": "Fácil Express",
+        "RCO9": "Fácil Express", "RDA9": "Fácil Express", "REI9": "Fácil Express", "REN9": "Fácil Express", "RFB9": "Fácil Express",
+        "RFO9": "Fácil Express", "RGA9": "Fácil Express", "RGU9": "Fácil Express", "RHU9": "Fácil Express", "RIN9": "Fácil Express",
+        "RIP9": "Fácil Express", "RIR9": "Fácil Express", "RIS9": "Fácil Express", "RIT9": "Fácil Express", "RJA9": "Fácil Express",
+        "RJT9": "Fácil Express", "RJU9": "Fácil Express", "RLA9": "Fácil Express", "RMA9": "Fácil Express", "RME9": "Fácil Express",
+        "RMI9": "Fácil Express", "RNA9": "Fácil Express", "RNG9": "Fácil Express", "RNH9": "Fácil Express", "RNI9": "Fácil Express",
+        "RNO9": "Fácil Express", "ROL9": "Fácil Express", "RPA9": "Fácil Express", "RPI9": "Fácil Express", "RPR9": "Total Express",
+        "RPU9": "Fácil Express", "RQI9": "Fácil Express", "RRA9": "Fácil Express", "RRC9": "Fácil Express", "RRE9": "Fácil Express",
+        "RRI9": "Fácil Express", "RRR9": "Fácil Express", "RRT9": "Azul", "RRU9": "Azul", "RTE9": "Azul",
+        "RTO9": "Azul", "RUA9": "Azul", "RUC9": "Azul", "RUI9": "Azul", "RUR9": "Diálogo", "RUT9": "Fácil Express",
+        "SAB9": "Favela Llog", "SAE9": "Redefrete", "SAG9": "Fácil Express", "SAL9": "Shippify", "SAM9": "Total Express",
+        "SAP9": "Azul", "SBA9": "Favela Llog", "SBB9": "Shippify", "SBE9": "Envia Daki", "SBG9": "Redefrete",
+        "SBI9": "Shippify", "SBL9": "Fatelog", "SBP9": "To Do Green", "SBR9": "Total Express", "SBT9": "To Do Green",
+        "SBU9": "To Do Green", "SBV9": "Azul", "SBZ1": "Favela Llog", "SBZ2": "To Do Green", "SCB9": "Shippify",
+        "SCC9": "Diálogo", "SCE9": "Elo Logística", "SCF9": "Fácil Express", "SCG9": "Shippify", "SCH9": "Fácil Express",
+        "SCL9": "Shippify", "SCM9": "Redefrete", "SCO9": "Shippify", "SCP9": "Favela Llog", "SCR9": "Shippify",
+        "SCS9": "Morais", "SCU9": "Diálogo", "SCZ9": "To Do Green", "SDA9": "Favela Llog", "SDC9": "Favela Llog",
+        "SDI9": "Favela Llog", "SDM9": "To Do Green", "SDN9": "Shippify", "SDO9": "Shippify", "SDV9": "To Do Green",
+        "SFC9": "To Do Green", "SFI9": "Redefrete", "SFM9": "To Do Green", "SGG9": "Diálogo", "SGO9": "Total Express",
+        "SGU9": "Azul", "SGV9": "Shippify", "SGZ9": "Fácil Express", "SHM9": "Morais", "SIM9": "Azul",
+        "SIO9": "To Do Green", "SIT9": "Fácil Express", "SJA9": "GW Express", "SJF9": "Shippify", "SJJ9": "Fácil Express",
+        "SJN9": "GW Express", "SJO9": "Diálogo", "SJR9": "Shippify", "SKM9": "Shippify", "SLG9": "Fatelog",
+        "SLI9": "Favela Llog", "SLJ9": "Redefrete", "SLJ9": "Redefrete", "SLN9": "Favela Llog", "SLO9": "Diálogo",
+        "SLR9": "Fácil Express", "SLS9": "GW Express", "SNF9": "Fácil Express", "SNV9": "Favela Llog", "SOG9": "To Do Green",
+        "SOP9": "Redefrete", "SOS9": "To Do Green", "SOU9": "Shippify", "SPA9": "Total Express", "SPC9": "Shippify",
+        "SPD9": "Shippify", "SPF9": "Azul", "SPG9": "Shippify", "SPH9": "GW Express", "SPL9": "Azul",
+        "SPM9": "Diálogo", "SPN9": "Diálogo", "SPO9": "Azul", "SPS9": "Redefrete", "SPT9": "GW Express",
+        "SPU9": "Deluna", "SPV9": "Azul", "SQA9": "Favela Llog", "SRB9": "Azul", "SRC9": "Shippify",
+        "SRD9": "Fácil Express", "SRG9": "Redefrete", "SRJ9": "Favela Llog", "SRM9": "Azul", "SRP9": "To Do Green",
+        "SRR9": "Total Express", "SRU9": "Shippify", "SSA9": "Favela Llog", "SSB9": "GW Express", "SSC9": "To Do Green",
+        "SSD9": "Total Express", "SSG9": "Favela Llog", "SSH9": "Diálogo", "SSJ9": "To Do Green", "SSM9": "Redefrete",
+        "SSO9": "Diálogo", "SSP8": "Dominalog", "SSP9": "Favela Llog", "SSR9": "Envia Daki", "SSS9": "GW Express",
+        "SSV9": "Morais", "SSV9*": "Total Express", "STA9": "To Do Green", "STB9": "Envia Daki", "STE9": "Total Express",
+        "STI9": "To Do Green", "STJ9": "Redefrete", "STP9": "Shippify", "STS9": "Fácil Express", "STT9": "To Do Green",
+        "STU9": "To Do Green", "SUA9": "Shippify", "SUB9": "Shippify", "SUE9": "Gafor", "SUN9": "To Do Green",
+        "SUU9": "To Do Green", "SVA9": "Diálogo", "SVC9": "Envia Daki", "SVR9": "Total Express", "SXPP": "To Do Green",
+        "SYM9": "Deluna", "XGA2": "Diálogo", "XRJ4": "Deluna", "XSP2": "Favela Llog", "SAR9": "Favela Llog"
+    };
+
+    let globalProcessedData = []; 
+    let activePartnerFilters = [];
+
     document.getElementById('csvFile').addEventListener('change', handleFile);
 
     function handleFile(e) {
@@ -242,6 +337,7 @@
         const idxS = headers.indexOf("Total reserved");
 
         let multiDayData = {};
+        let uniquePartners = new Set();
 
         for(let i = 1; i < lines.length; i++) {
             if(!lines[i]) continue;
@@ -278,28 +374,73 @@
 
             if(isCubicFeet) { multiDayData[dataPlanilha][nodeName].cubicFeet += valS; } 
             else if(isPackageCount) { multiDayData[dataPlanilha][nodeName].cap += valS; }
+            
+            // Adiciona o parceiro mapeado à lista global de filtros válidos no arquivo pushado
+            let parceiro = PARTNER_MAP[nodeName] || "Outros";
+            uniquePartners.add(parceiro);
         }
 
-        const datasOrdenadas = Object.keys(multiDayData).sort();
+        globalProcessedData = multiDayData;
+        activePartnerFilters = Array.from(uniquePartners).sort(); // Ativa todos por padrão no upload
+
+        initPartnerFilters(Array.from(uniquePartners).sort());
+        renderDashboard();
+
+        document.getElementById('as-upload-section').style.display = 'none';
+        document.getElementById('filterSection').style.display = 'block';
+        document.getElementById('globalActions').style.display = 'flex';
+        showToast("Dados carregados com sucesso!");
+    }
+
+    // Inicializa botões de filtro dinâmicos estilo LogVision
+    function initPartnerFilters(partners) {
+        const group = document.getElementById('partnerFilterGroup');
+        group.innerHTML = "";
+        
+        partners.forEach(partner => {
+            const label = document.createElement('label');
+            label.className = 'filter-item active';
+            label.innerHTML = `<input type="checkbox" hidden value="${partner}" checked> <i class="fa-solid fa-truck-ramp-box"></i> ${partner}`;
+            
+            label.onclick = function() {
+                const cb = this.querySelector('input');
+                cb.checked = !cb.checked;
+                this.classList.toggle('active', cb.checked);
+                
+                activePartnerFilters = Array.from(group.querySelectorAll('input:checked')).map(i => i.value);
+                renderDashboard();
+            };
+            group.appendChild(label);
+        });
+    }
+
+    function renderDashboard() {
         const outputArea = document.getElementById('outputArea');
         outputArea.innerHTML = ""; 
-
-        if(datasOrdenadas.length === 0) return;
-        document.getElementById('as-upload-section').style.display = 'none';
-        document.getElementById('globalActions').style.display = 'flex';
+        
+        const datasOrdenadas = Object.keys(globalProcessedData).sort();
 
         datasOrdenadas.forEach((dataKey, index) => {
-            let nodeData = multiDayData[dataKey];
+            let nodeData = globalProcessedData[dataKey];
             let finalRows = [];
             let todasCubagens = [];
 
             for(let node in nodeData) {
+                let parceiro = PARTNER_MAP[node] || "Outros";
+                
+                // Aplica o filtro de parceiros ativo na tela
+                if (!activePartnerFilters.includes(parceiro)) continue;
+
                 let cf = nodeData[node].cubicFeet;
                 let cap = nodeData[node].cap;
                 let cubagem = cap !== 0 ? (cf / cap) : 0;
-                finalRows.push({ node, cubicFeet: cf, cap: cap, cubagem: cubagem });
+                
+                finalRows.push({ node, partner: parceiro, cubicFeet: cf, cap: cap, cubagem: cubagem });
                 todasCubagens.push(cubagem);
             }
+
+            // Pula a renderização do bloco se não houver nodes válidos para este dia com o filtro atual
+            if (finalRows.length === 0) return;
 
             finalRows.sort((a, b) => b.cap - a.cap);
 
@@ -340,6 +481,7 @@
                 rowsHtml += `
                     <tr>
                         <td class="node-cell">${row.node}</td>
+                        <td class="partner-cell">${row.partner}</td>
                         <td class="num-cell">${row.cubicFeet.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td class="num-cell">${row.cap.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</td>
                         <td class="num-cell" style="background-color: ${bgColor}; font-weight: 500;">${row.cubagem.toFixed(2).replace('.', ',')}</td>
@@ -361,6 +503,7 @@
                         <thead>
                             <tr class="header-row">
                                 <th class="header-cell">Node</th>
+                                <th class="header-cell">Parceiro</th>
                                 <th class="header-cell" style="text-align: right;">Cubic Feet</th>
                                 <th class="header-cell" style="text-align: right;">CAP</th>
                                 <th class="header-cell" style="text-align: right;">Cubagem</th>
@@ -375,9 +518,9 @@
 
             outputArea.appendChild(dayBlock);
         });
-        showToast("Dados processados com sucesso!");
     }
 
+    // Captura com preservação estrutural exata da tabela
     function takeBlockScreenshot(tableId, btnId) {
         const target = document.getElementById(tableId);
         const btn = document.getElementById(btnId);
@@ -391,7 +534,7 @@
                 const item = new ClipboardItem({ "image/png": blob });
                 navigator.clipboard.write([item]).then(() => {
                     btn.innerHTML = '<i class="fa-solid fa-check"></i> Pronto';
-                    showToast("Imagem copiada! Cole direto no WhatsApp.");
+                    showToast("Imagem do print enviada para a Área de Transferência!");
                     setTimeout(() => {
                         btn.innerHTML = oldHtml;
                         btn.disabled = false;
@@ -414,14 +557,18 @@
         
         const el = document.createElement('textarea'); el.value = textResult; document.body.appendChild(el);
         el.select(); document.execCommand('copy'); document.body.removeChild(el); 
-        showToast("Texto copiado!");
+        showToast("Texto da tabela copiado!");
     }
     
     function clearAllData() {
         document.getElementById('csvFile').value = "";
         document.getElementById('outputArea').innerHTML = "";
+        document.getElementById('partnerFilterGroup').innerHTML = "";
         document.getElementById('globalActions').style.display = 'none';
+        document.getElementById('filterSection').style.display = 'none';
         document.getElementById('as-upload-section').style.display = 'block';
+        globalProcessedData = [];
+        activePartnerFilters = [];
         showToast("Dashboard limpo.");
     }
 </script>
