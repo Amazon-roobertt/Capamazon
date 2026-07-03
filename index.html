@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="https://www.amazon.com.br/favicon.ico">
+    <title>Amazon | LogiVision Pro - CAP Diário</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        /* ==========================================
+           PALETA DE CORES E BASE LOGVISION
+           ========================================== */
+        :root { 
+            --amazon-orange: #ff9900; 
+            --amazon-blue: #232f3e; 
+            --bg-light: #f3f3f3; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background-color: var(--bg-light); 
+            font-family: 'Urbanist', sans-serif; 
+            min-height: 100vh; 
+            position: relative; 
+            padding-bottom: 80px; 
+        }
+        
+        .container { max-width: 1550px; margin: 30px auto; padding: 0 20px; }
+        .canvas-container { 
+            background: #fff; 
+            border-radius: 12px; 
+            padding: 30px; 
+            min-height: 80vh; 
+            border: 1px solid #ddd; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
+        
+        header.internal-header { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            border-bottom: 2px solid var(--amazon-orange); 
+            padding-bottom: 15px; 
+            margin-bottom: 25px; 
+        }
+        header img { height: 45px; }
+        header h1 { font-size: 26px; color: #232f3e; font-weight: 700; }
+        header h1 span { color: #007185; }
+        
+        /* Área de Upload Estilo LogVision */
+        .upload-view { 
+            border: 2px dashed #ccc; 
+            border-radius: 12px; 
+            padding: 40px; 
+            text-align: center; 
+            cursor: pointer; 
+            background: #fafafa; 
+            margin-bottom: 30px; 
+            transition: 0.2s; 
+        }
+        .upload-view:hover { border-color: var(--amazon-orange); background: rgba(255, 153, 0, 0.03); }
+        .upload-view h2 { font-size: 18px; color: #232f3e; margin-top: 10px; margin-bottom: 5px; }
+        .upload-view p { font-size: 13px; color: #666; }
+
+        /* Botões Padrão LogVision */
+        .btn-amazon-rect { 
+            background: var(--amazon-orange); color: #000; border: 1px solid #d47f00; 
+            padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; 
+            transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; 
+            justify-content: center; font-family: inherit; font-size: 13px;
+        }
+        .btn-amazon-rect:hover { background: #f58200; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .btn-ui { 
+            background: #fff; color: #232f3e; border: 1px solid #ddd; padding: 6px 12px; 
+            border-radius: 5px; font-weight: 700; cursor: pointer; font-size: 11px; 
+            display: flex; align-items: center; gap: 5px; transition: 0.2s; font-family: inherit; 
+        }
+        .btn-ui:hover { background: #f3f3f3; border-color: #bbb; }
+
+        /* ==========================================
+           GRID LAYOUT - DA ESQUERDA PARA A DIREITA
+           ========================================== */
+        .dashboard-actions {
+            display: none;
+            justify-content: flex-end;
+            margin-bottom: 25px;
+        }
+
+        #outputArea {
+            display: flex;
+            flex-direction: row;        
+            flex-wrap: wrap;            
+            justify-content: flex-start;    
+            gap: 25px;                  
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Card de Bloco do Dia Interno */
+        .pivot-card { 
+            border: 1px solid #ddd; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            background: white; 
+            width: 410px; /* Largura ideal para conter a tabela de 380px + respiros */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 15px;
+        }
+        .pivot-header { 
+            background: #232f3e; color: white; padding: 12px 20px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            font-weight: 700; width: 100%; font-size: 14px;
+        }
+
+        /* ==========================================
+           VISUAL ORIGINAL DO EXCEL PRESERVADO (Para os Prints)
+           ========================================== */
+        .table-container {
+            width: 380px; 
+            border: 1px solid #b4b4b4;
+            background-color: white;
+            margin-top: 15px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; font-family: 'Segoe UI', Arial, sans-serif; }
+        th, td { padding: 5px 8px; border: 1px solid #b4b4b4; vertical-align: middle; }
+        
+        .main-title {
+            background-color: #2e8b57; color: #ffffff; font-weight: bold;
+            font-size: 15px; text-align: center; padding: 8px;
+            border: 1px solid #b4b4b4; border-bottom: none;
+        }
+        .header-row { background-color: #2e8b57; }
+        .header-cell {
+            position: relative; text-align: left; padding-right: 18px;
+            color: #ffffff; font-weight: bold;
+        }
+        .header-cell::after {
+            content: "▼"; font-size: 8px; position: absolute; right: 4px;
+            top: 50%; transform: translateY(-50%); background: #ffffff;
+            color: #333333; padding: 1px 2px; border: 1px solid #777777; border-radius: 1px;
+        }
+        .node-cell { text-align: left; background-color: #ffffff; color: #000000; font-weight: 700; }
+        .num-cell { text-align: right; background-color: #ffffff; color: #000000; font-weight: 600; }
+        
+        /* Escala de cores do Excel */
+        .v-verde-escuro { background-color: #63be7b !important; }
+        .v-verde-claro  { background-color: #a1d99b !important; }
+        .v-amarelo      { background-color: #ffeb84 !important; }
+        .v-laranja      { background-color: #fbae7d !important; }
+        .v-vermelho     { background-color: #f8696b !important; }
+
+        /* Marcas d'água de rodapé */
+        .watermark { position: fixed; bottom: 15px; display: flex; align-items: center; gap: 8px; opacity: 0.7; pointer-events: none; z-index: 5000; }
+        .wm-right { right: 20px; }
+        .wm-left { left: 20px; }
+        .watermark img { height: 20px; filter: grayscale(1); }
+        .watermark span { font-size: 13px; font-weight: 800; color: #232f3e; letter-spacing: 1px; }
+        #toast { position: fixed; bottom: 30px; right: 30px; background: #232f3e; color: #fff; padding: 12px 25px; border-radius: 4px; display: none; z-index: 9999; font-weight: 600; font-size: 13px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="canvas-container">
+        
+        <!-- Cabeçalho Interno Estilo LogVision -->
+        <header class="internal-header">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon Logo">
+            <h1>CAP Diário <span>| Cubagem Consolidada</span></h1>
+        </header>
+
+        <!-- Área de Upload LogVision -->
+        <div id="as-upload-section">
+            <div class="upload-view" onclick="document.getElementById('csvFile').click()">
+                <i class="fa-solid fa-magnifying-glass-chart" style="font-size:50px; color: var(--amazon-orange);"></i>
+                <h2>Processar Novo Relatório Multi-Dias</h2>
+                <p>Clique ou arraste para selecionar o arquivo padrão de cubagem (.csv)</p>
+                <input type="file" id="csvFile" hidden accept=".csv">
+            </div>
+        </div>
+
+        <!-- Ações do Dashboard -->
+        <div class="dashboard-actions" id="globalActions">
+            <button class="btn-amazon-rect" style="background:#cc0c39; color:#fff; border:none" onclick="clearAllData()">
+                <i class="fa-solid fa-trash-can"></i> LIMPAR INFORMAÇÕES
+            </button>
+        </div>
+
+        <!-- Grid de Distribuição Lado a Lado (Esquerda para Direita) -->
+        <div id="outputArea"></div>
+
+    </div>
+</div>
+
+<!-- Elementos de Interface Compartilhados LogVision -->
+<div class="watermark wm-left"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"><span>@ROOBERTT</span></div>
+<div class="watermark wm-right"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"><span>@ROOBERTT</span></div>
+<div id="toast">Ação concluída!</div>
+
+<script>
+    // Injeção da lógica de processamento e inteligência operacional
+    document.getElementById('csvFile').addEventListener('change', handleFile);
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) { processCSV(evt.target.result); };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    function showToast(m) {
+        const t = document.getElementById('toast'); t.innerText = m; t.style.display='block';
+        setTimeout(() => t.style.display='none', 2500);
+    }
+
+    function processCSV(text) {
+        const lines = text.split(/\r?\n/);
+        if(lines.length < 2) return;
+
+        const parseRow = (row) => {
+            return row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"| Just"$|"/g, '').trim());
+        };
+
+        const headers = parseRow(lines[0]);
+        const idxB = headers.indexOf("Sour");
+        const idxD = headers.indexOf("Sort code");
+        const idxJ = headers.indexOf("Cond");
+        const idxK = headers.indexOf("Date");
+        const idxM = headers.indexOf("Measurement");
+        const idxN = headers.indexOf("Constraint");
+        const idxS = headers.indexOf("Total reserved");
+
+        let multiDayData = {};
+
+        for(let i = 1; i < lines.length; i++) {
+            if(!lines[i]) continue;
+            const cols = parseRow(lines[i]);
+            if(cols.length <= Math.max(idxB, idxD, idxJ, idxK, idxM, idxN, idxS)) continue;
+
+            if(cols[idxJ] === "AMZL_OVERSIZE_BR") continue;
+
+            let nodeName = cols[idxB];
+            if(cols[idxD] === "EX" || cols[idxD] === "EXTR") { nodeName = cols[idxD]; }
+
+            if(!nodeName) continue;
+
+            const dataPlanilha = cols[idxK]; 
+            if(!dataPlanilha) continue;
+
+            const valM = cols[idxM];
+            const valN = cols[idxN];
+            let isCubicFeet = (valM === "Cubic feet" && valN === "Monitor");
+            let isPackageCount = (valM === "Package count" && valN === "Soft cap");
+
+            if(!isCubicFeet && !isPackageCount) continue;
+
+            const valS = parseFloat(cols[idxS]);
+            if(isNaN(valS) || valS === 0) continue;
+
+            if(!multiDayData[dataPlanilha]) {
+                multiDayData[dataPlanilha] = {};
+            }
+
+            if(!multiDayData[dataPlanilha][nodeName]) {
+                multiDayData[dataPlanilha][nodeName] = { cubicFeet: 0, cap: 0 };
+            }
+
+            if(isCubicFeet) { multiDayData[dataPlanilha][nodeName].cubicFeet += valS; } 
+            else if(isPackageCount) { multiDayData[dataPlanilha][nodeName].cap += valS; }
+        }
+
+        const datasOrdenadas = Object.keys(multiDayData).sort();
+        const outputArea = document.getElementById('outputArea');
+        outputArea.innerHTML = ""; 
+
+        if(datasOrdenadas.length === 0) return;
+        document.getElementById('as-upload-section').style.display = 'none';
+        document.getElementById('globalActions').style.display = 'flex';
+
+        datasOrdenadas.forEach((dataKey, index) => {
+            let nodeData = multiDayData[dataKey];
+            let finalRows = [];
+            let todasCubagens = [];
+
+            for(let node in nodeData) {
+                let cf = nodeData[node].cubicFeet;
+                let cap = nodeData[node].cap;
+                let cubagem = cap !== 0 ? (cf / cap) : 0;
+                finalRows.push({ node, cubicFeet: cf, cap: cap, cubagem: cubagem });
+                todasCubagens.push(cubagem);
+            }
+
+            finalRows.sort((a, b) => b.cap - a.cap);
+
+            const partesData = dataKey.split('-'); 
+            const diaFormato = partesData[2];
+            const mesFormato = partesData[1];
+            const stringTituloCAP = `CAP ${diaFormato}/${mesFormato}`;
+
+            const blockId = `block_${index}`;
+            const tableId = `table_${index}`;
+            const btnId = `btn_${index}`;
+
+            const dayBlock = document.createElement('div');
+            dayBlock.className = 'pivot-card';
+            dayBlock.id = blockId;
+
+            let rowsHtml = "";
+            const minCub = Math.min(...todasCubagens);
+            const maxCub = Math.max(...todasCubagens);
+
+            finalRows.forEach(row => {
+                let bgColor = "rgb(255,255,255)";
+                if(maxCub !== minCub) {
+                    let percent = (row.cubagem - minCub) / (maxCub - minCub);
+                    let r, g, b;
+                    if(percent < 0.5) {
+                        r = Math.floor(99 + (255 - 99) * (percent * 2));
+                        g = Math.floor(190 + (235 - 190) * (percent * 2));
+                        b = Math.floor(123 + (132 - 123) * (percent * 2));
+                    } else {
+                        r = Math.floor(255 + (248 - 255) * ((percent - 0.5) * 2));
+                        g = Math.floor(235 + (105 - 235) * ((percent - 0.5) * 2));
+                        b = Math.floor(132 + (107 - 132) * ((percent - 0.5) * 2));
+                    }
+                    bgColor = `rgb(${r}, ${g}, ${b})`;
+                }
+
+                rowsHtml += `
+                    <tr>
+                        <td class="node-cell">${row.node}</td>
+                        <td class="num-cell">${row.cubicFeet.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td class="num-cell">${row.cap.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</td>
+                        <td class="num-cell" style="background-color: ${bgColor}; font-weight: 500;">${row.cubagem.toFixed(2).replace('.', ',')}</td>
+                    </tr>
+                `;
+            });
+
+            dayBlock.innerHTML = `
+                <div class="pivot-header">
+                    <span>${stringTituloCAP}</span>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-ui" id="${btnId}" onclick="takeBlockScreenshot('${tableId}', '${btnId}')"><i class="fa-solid fa-camera"></i> Print</button>
+                        <button class="btn-ui" onclick="copyBlockToClipboard('${tableId}')"><i class="fa-solid fa-copy"></i> Copiar</button>
+                    </div>
+                </div>
+                <div class="table-container" id="${tableId}">
+                    <div class="main-title">${stringTituloCAP}</div>
+                    <table>
+                        <thead>
+                            <tr class="header-row">
+                                <th class="header-cell">Node</th>
+                                <th class="header-cell" style="text-align: right;">Cubic Feet</th>
+                                <th class="header-cell" style="text-align: right;">CAP</th>
+                                <th class="header-cell" style="text-align: right;">Cubagem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            outputArea.appendChild(dayBlock);
+        });
+        showToast("Dados processados com sucesso!");
+    }
+
+    function takeBlockScreenshot(tableId, btnId) {
+        const target = document.getElementById(tableId);
+        const btn = document.getElementById(btnId);
+        const oldHtml = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
+        btn.disabled = true;
+
+        html2canvas(target, { scale: 2, logging: false, useCORS: true }).then(canvas => {
+            canvas.toBlob(blob => {
+                const item = new ClipboardItem({ "image/png": blob });
+                navigator.clipboard.write([item]).then(() => {
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> Pronto';
+                    showToast("Imagem copiada! Cole direto no WhatsApp.");
+                    setTimeout(() => {
+                        btn.innerHTML = oldHtml;
+                        btn.disabled = false;
+                    }, 1500);
+                }).catch(err => {
+                    alert("Erro ao copiar imagem.");
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                });
+            }, "image/png");
+        });
+    }
+
+    function copyBlockToClipboard(tableId) {
+        const container = document.getElementById(tableId);
+        let textResult = ""; 
+        container.querySelectorAll('tr').forEach(r => { 
+            textResult += Array.from(r.querySelectorAll('th, td')).map(c => c.innerText).join('\t') + '\n'; 
+        }); 
+        
+        const el = document.createElement('textarea'); el.value = textResult; document.body.appendChild(el);
+        el.select(); document.execCommand('copy'); document.body.removeChild(el); 
+        showToast("Texto copiado!");
+    }
+    
+    function clearAllData() {
+        document.getElementById('csvFile').value = "";
+        document.getElementById('outputArea').innerHTML = "";
+        document.getElementById('globalActions').style.display = 'none';
+        document.getElementById('as-upload-section').style.display = 'block';
+        showToast("Dashboard limpo.");
+    }
+</script>
+</body>
+</html>
