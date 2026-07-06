@@ -130,7 +130,7 @@
             border-radius: 10px; 
             overflow: hidden; 
             background: white; 
-            width: 440px; /* Alargado levemente para comportar a nova coluna sem esmagar */
+            width: 440px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.03);
             display: flex;
             flex-direction: column;
@@ -147,7 +147,7 @@
            VISUAL ORIGINAL DO EXCEL PRESERVADO (Para os Prints)
            ========================================== */
         .table-container {
-            width: 410px; /* Redimensionado de forma proporcional para conter a coluna extra */
+            width: 410px; 
             border: 1px solid #b4b4b4;
             background-color: white;
             margin-top: 15px;
@@ -238,10 +238,10 @@
 <script>
     // BANCO DE DADOS DE PARCEIROS (Histórico Injetado)
     const PARTNER_MAP = {
-        "EXTR": "To Do Green", // <-- ADICIONE APENAS ESTA LINHA AQUI
+        "EXTR": "To Do Green",
         "FBH1": "Shippify", "FBS1": "Diálogo", "FPE1": "GW Express", "FRJ2": "Bravus", "PAB2": "Fácil Express",
-        "PAF1": "Shippify", "PAL1": "Envia Daki", "PAQ1": "Azul", "PAS2": "Diálogo", "PAQ1": "Azul", 
-        "PAZ1": "Fácil Express", "PBE2": "Diálogo", "PBG2": "Redefrete", "PBT2": "Total Express", "PBZ2": "Fácil Express",
+        "PAF1": "Shippify", "PAL1": "Envia Daki", "PAQ1": "Azul", "PAS2": "Diálogo", "PAZ1": "Fácil Express", 
+        "PBE2": "Diálogo", "PBG2": "Redefrete", "PBT2": "Total Express", "PBZ2": "Fácil Express",
         "PCC2": "Redefrete", "PCI1": "GW Express", "PCM2": "Elo Logística", "PCN2": "GW Express", "PCO1": "Diálogo",
         "PCR2": "Diálogo", "PCS2": "GW Express", "PCU1": "Redefrete", "PCV2": "Fácil Express", "PCX2": "Shippify",
         "PDI2": "Shippify", "PDN1": "Shippify", "PEC1": "Azul", "PEU2": "Envia Daki", "PFE1": "To Do Green",
@@ -285,7 +285,7 @@
         "SGU9": "Azul", "SGV9": "Shippify", "SGZ9": "Fácil Express", "SHM9": "Morais", "SIM9": "Azul",
         "SIO9": "To Do Green", "SIT9": "Fácil Express", "SJA9": "GW Express", "SJF9": "Shippify", "SJJ9": "Fácil Express",
         "SJN9": "GW Express", "SJO9": "Diálogo", "SJR9": "Shippify", "SKM9": "Shippify", "SLG9": "Fatelog",
-        "SLI9": "Favela Llog", "SLJ9": "Redefrete", "SLJ9": "Redefrete", "SLN9": "Favela Llog", "SLO9": "Diálogo",
+        "SLI9": "Favela Llog", "SLJ9": "Redefrete", "SLN9": "Favela Llog", "SLO9": "Diálogo",
         "SLR9": "Fácil Express", "SLS9": "GW Express", "SNF9": "Fácil Express", "SNV9": "Favela Llog", "SOG9": "To Do Green",
         "SOP9": "Redefrete", "SOS9": "To Do Green", "SOU9": "Shippify", "SPA9": "Total Express", "SPC9": "Shippify",
         "SPD9": "Shippify", "SPF9": "Azul", "SPG9": "Shippify", "SPH9": "GW Express", "SPL9": "Azul",
@@ -299,7 +299,7 @@
         "STI9": "To Do Green", "STJ9": "Redefrete", "STP9": "Shippify", "STS9": "Fácil Express", "STT9": "To Do Green",
         "STU9": "To Do Green", "SUA9": "Shippify", "SUB9": "Shippify", "SUE9": "Gafor", "SUN9": "To Do Green",
         "SUU9": "To Do Green", "SVA9": "Diálogo", "SVC9": "Envia Daki", "SVR9": "Total Express", "SXPP": "To Do Green",
-        "SYM9": "Deluna", "XGA2": "Diálogo", "XRJ4": "Deluna", "XSP2": "Favela Llog", "SAR9": "Favela Llog"
+        "SYM9": "Deluna", "XGA2": "Diálogo", "XRJ4": "Deluna", "XSP2": "Favela Llog", "SAR9": "Favela Llog", "SAM9": "Fácil Express"
     };
 
     let globalProcessedData = []; 
@@ -339,6 +339,10 @@
 
         let multiDayData = {};
         let uniquePartners = new Set();
+        
+        // Estrutura auxiliar para rastrear se já computamos o "Soft cap" para um Node específico em uma determinada Data
+        // Formato: { "2026-07-02": { "SBZ2": true, ... } }
+        let softCapTracker = {};
 
         for(let i = 1; i < lines.length; i++) {
             if(!lines[i]) continue;
@@ -365,24 +369,36 @@
             const valS = parseFloat(cols[idxS]);
             if(isNaN(valS) || valS === 0) continue;
 
+            // Inicializações de estrutura
             if(!multiDayData[dataPlanilha]) {
                 multiDayData[dataPlanilha] = {};
             }
-
             if(!multiDayData[dataPlanilha][nodeName]) {
                 multiDayData[dataPlanilha][nodeName] = { cubicFeet: 0, cap: 0 };
             }
+            if(!softCapTracker[dataPlanilha]) {
+                softCapTracker[dataPlanilha] = {};
+            }
 
-            if(isCubicFeet) { multiDayData[dataPlanilha][nodeName].cubicFeet += valS; } 
-            else if(isPackageCount) { multiDayData[dataPlanilha][nodeName].cap += valS; }
+            if(isCubicFeet) { 
+                multiDayData[dataPlanilha][nodeName].cubicFeet += valS; 
+            } 
+            else if(isPackageCount) { 
+                // REGRA DE DEDUPLICAÇÃO DO SOFT CAP:
+                // Se o arquivo tiver linhas duplicadas de Package count/Soft cap para o mesmo Node no mesmo Dia,
+                // mantemos apenas o primeiro registro para não inflar o valor do CAP final.
+                if(!multiDayData[dataPlanilha][nodeName].hasCap) {
+                    multiDayData[dataPlanilha][nodeName].cap = valS;
+                    multiDayData[dataPlanilha][nodeName].hasCap = true; 
+                }
+            }
             
-            // Adiciona o parceiro mapeado à lista global de filtros válidos no arquivo pushado
             let parceiro = PARTNER_MAP[nodeName] || "Outros";
             uniquePartners.add(parceiro);
         }
 
         globalProcessedData = multiDayData;
-        activePartnerFilters = Array.from(uniquePartners).sort(); // Ativa todos por padrão no upload
+        activePartnerFilters = Array.from(uniquePartners).sort(); 
 
         initPartnerFilters(Array.from(uniquePartners).sort());
         renderDashboard();
@@ -393,7 +409,6 @@
         showToast("Dados carregados com sucesso!");
     }
 
-    // Inicializa botões de filtro dinâmicos estilo LogVision
     function initPartnerFilters(partners) {
         const group = document.getElementById('partnerFilterGroup');
         group.innerHTML = "";
@@ -428,8 +443,6 @@
 
             for(let node in nodeData) {
                 let parceiro = PARTNER_MAP[node] || "Outros";
-                
-                // Aplica o filtro de parceiros ativo na tela
                 if (!activePartnerFilters.includes(parceiro)) continue;
 
                 let cf = nodeData[node].cubicFeet;
@@ -440,7 +453,6 @@
                 todasCubagens.push(cubagem);
             }
 
-            // Pula a renderização do bloco se não houver nodes válidos para este dia com o filtro atual
             if (finalRows.length === 0) return;
 
             finalRows.sort((a, b) => b.cap - a.cap);
@@ -521,7 +533,6 @@
         });
     }
 
-    // Captura com preservação estrutural exata da tabela
     function takeBlockScreenshot(tableId, btnId) {
         const target = document.getElementById(tableId);
         const btn = document.getElementById(btnId);
