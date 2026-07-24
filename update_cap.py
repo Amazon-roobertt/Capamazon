@@ -245,14 +245,10 @@ def process_csv(csv_path):
             if not is_cubic and not is_pkg:
                 continue
             
-            if is_cubic:
-                try: val = float(total_reserved_str) if total_reserved_str else 0
-                except: val = 0
-                if val == 0: continue
-            elif is_pkg:
-                try: val = float(capacity_value_str) if capacity_value_str else 0
-                except: val = 0
-                if val == 0: continue
+            # AMBOS usam Total reserved (mesma logica do HTML original)
+            try: val = float(total_reserved_str) if total_reserved_str else 0
+            except: val = 0
+            if val == 0: continue
             
             if date_val not in multi_day_data:
                 multi_day_data[date_val] = {}
