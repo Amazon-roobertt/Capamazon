@@ -11,7 +11,46 @@
     <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    // === AUTO-LOAD FROM JSON (data/cap-data.json) ===
+    async function autoLoadCAP() {
+        try {
+            const cacheBuster = new Date().getTime();
+            const response = await fetch('data/cap-data.json?t=' + cacheBuster);
+            if (!response.ok) return;
+            const payload = await response.json();
+            console.log('[AutoLoad CAP] Dados carregados:', payload.generatedAt);
+            if (!payload.data || Object.keys(payload.data).length === 0) return;
+            globalProcessedData = {};
+            let uniquePartners = new Set();
+            for (let dateKey in payload.data) {
+                globalProcessedData[dateKey] = {};
+                for (let nodeName in payload.data[dateKey]) {
+                    const nodeInfo = payload.data[dateKey][nodeName];
+                    globalProcessedData[dateKey][nodeName] = {
+                        cubicFeet: nodeInfo.cubicFeet || 0,
+                        cap: nodeInfo.cap || 0
+                    };
+                    let parceiro = PARTNER_MAP[nodeName] || "Outros";
+                    uniquePartners.add(parceiro);
+                }
+            }
+            activePartnerFilters = Array.from(uniquePartners).sort();
+            initPartnerFilters(activePartnerFilters);
+            renderDashboard();
+            document.getElementById('as-upload-section').style.display = 'none';
+            document.getElementById('filterSection').style.display = 'block';
+            document.getElementById('globalActions').style.display = 'flex';
+            const genDate = new Date(payload.generatedAt);
+            showToast('Atualizado: ' + genDate.toLocaleString('pt-BR'));
+        } catch (err) {
+            console.log('[AutoLoad CAP] Modo manual ativo.', err.message);
+        }
+    }
+    // Auto-carregar ao abrir
+    window.addEventListener('DOMContentLoaded', function() { autoLoadCAP(); });
+
+</script>
 
     <style>
         /* ==========================================
