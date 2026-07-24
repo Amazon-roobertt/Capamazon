@@ -75,7 +75,7 @@ def download_csv():
     today = datetime.now()
     end_date = today + timedelta(days=7)
     
-    print(f"\n  Periodo: {tomorrow.strftime('%d/%m/%Y')} ate {end_date.strftime('%d/%m/%Y')}")
+    print(f"\n  Periodo: {today.strftime('%d/%m/%Y')} ate {end_date.strftime('%d/%m/%Y')}")
     
     # Preparar pasta de download limpa
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
