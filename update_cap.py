@@ -47,9 +47,9 @@ NODES = "SBZ2  STA9  SCZ9  SRP9  SBU9  STT9  SFC9  SSC9  SSJ9  SBT9  SBP9  SFC9 
 
 
 def build_crisp_url():
-    tomorrow = datetime.now() + timedelta(days=1)
-    end_date = tomorrow + timedelta(days=6)
-    start_str = tomorrow.strftime("%Y-%m-%dT00:00")
+    today = datetime.now()
+    end_date = today + timedelta(days=7)
+    start_str = today.strftime("%Y-%m-%dT00:00")
     end_str = end_date.strftime("%Y-%m-%dT23:59")
     
     base = "https://crisp-na.corp.amazon.com/transportation/capacity-dashboard"
@@ -72,8 +72,8 @@ def build_crisp_url():
 def download_csv():
     """Abre Chrome separado, espera Midway auth, baixa CSV."""
     url = build_crisp_url()
-    tomorrow = datetime.now() + timedelta(days=1)
-    end_date = tomorrow + timedelta(days=6)
+    today = datetime.now()
+    end_date = today + timedelta(days=7)
     
     print(f"\n  Periodo: {tomorrow.strftime('%d/%m/%Y')} ate {end_date.strftime('%d/%m/%Y')}")
     

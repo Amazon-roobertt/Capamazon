@@ -51,9 +51,9 @@ def log(msg):
 
 
 def build_crisp_url():
-    tomorrow = datetime.now() + timedelta(days=1)
-    end_date = tomorrow + timedelta(days=6)
-    start_str = tomorrow.strftime("%Y-%m-%dT00:00")
+    today = datetime.now()
+    end_date = today + timedelta(days=7)
+    start_str = today.strftime("%Y-%m-%dT00:00")
     end_str = end_date.strftime("%Y-%m-%dT23:59")
     base = "https://crisp-na.corp.amazon.com/transportation/capacity-dashboard"
     params = (
